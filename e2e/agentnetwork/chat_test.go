@@ -513,4 +513,40 @@ func TestProvidersMatrix(t *testing.T) {
 	// Final raw-SQL audit: bypass the API entirely and re-verify every
 	// persisted usage row straight in the management sqlite store.
 	verifyUsageRowsSQL(t, srv)
+
+	// Surface the proxy's own cost-audit trail (raw upstream response
+	// bodies, parsed token counts, per-bucket pricing math, final metered
+	// cost) into the test output, so the CI log carries the ground truth
+	// the middleware saw — not just the recomputed expectations above.
+	dumpProxyCostAudit(t, px)
+}
+
+// proxyAuditMarkers are the log markers of the proxy's warn-level cost-audit
+// trail: the raw upstream body, the parsed token counts, the per-bucket
+// pricing arithmetic, and the final metered (or skipped) cost.
+var proxyAuditMarkers = []string{
+	"llm raw response body",
+	"llm response tokens",
+	"pricing ",
+	"cost computed",
+	"cost skipped",
+}
+
+// dumpProxyCostAudit prints the proxy container's cost-audit log lines. The
+// proxy emits them at warn severity on every LLM response; testcontainers
+// keeps them in the container's stdout, which is otherwise only surfaced on
+// failure — this dump makes the audit trail part of every run's output.
+func dumpProxyCostAudit(t *testing.T, px *harness.Proxy) {
+	t.Helper()
+	matched := 0
+	for _, line := range strings.Split(px.Logs(context.Background()), "\n") {
+		for _, marker := range proxyAuditMarkers {
+			if strings.Contains(line, marker) {
+				t.Logf("[proxy-audit] %s", line)
+				matched++
+				break
+			}
+		}
+	}
+	require.Positive(t, matched, "proxy must have emitted cost-audit log lines for the matrix traffic")
 }

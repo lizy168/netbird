@@ -341,7 +341,9 @@ func (cl *Client) Terminate(ctx context.Context) error {
 	return cl.container.Terminate(ctx)
 }
 
-// containerLogs reads up to 256 KiB of a container's logs for diagnostics.
+// containerLogs reads up to 4 MiB of a container's logs for diagnostics. The
+// cap is sized so the proxy's per-request cost-audit trail (raw response
+// bodies up to 4 KiB each) survives for a whole provider-matrix run.
 func containerLogs(ctx context.Context, c testcontainers.Container) string {
 	if c == nil {
 		return ""
@@ -351,6 +353,6 @@ func containerLogs(ctx context.Context, c testcontainers.Container) string {
 		return fmt.Sprintf("<logs error: %v>", err)
 	}
 	defer r.Close()
-	b, _ := io.ReadAll(io.LimitReader(r, 256<<10))
+	b, _ := io.ReadAll(io.LimitReader(r, 4<<20))
 	return string(b)
 }
