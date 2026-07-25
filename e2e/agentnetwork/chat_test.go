@@ -288,12 +288,16 @@ func availableProviders() []providerCase {
 		if region == "" {
 			region = "eu-central-1"
 		}
-		// A valid Bedrock inference-profile id (region prefix + date + version),
-		// overridable per account. `global.` profiles can be invoked from any
-		// region; set AWS_BEDROCK_MODEL to match the enabled profile for the token.
+		// A valid Bedrock inference-profile id, overridable per account
+		// (AWS_BEDROCK_MODEL; also exposed as the workflow's bedrock_model
+		// dispatch input). `global.` profiles can be invoked from any region,
+		// including eu-central-1. Defaults to Sonnet 4.6 — the model from the
+		// original cost report. Note the suffix convention change: Sonnet 4.6
+		// dropped the -YYYYMMDD-v1:0 suffix that Haiku 4.5
+		// (global.anthropic.claude-haiku-4-5-20251001-v1:0) still carries.
 		model := os.Getenv("AWS_BEDROCK_MODEL")
 		if model == "" {
-			model = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+			model = "global.anthropic.claude-sonnet-4-6"
 		}
 		ps = append(ps, providerCase{name: "bedrock", catalogID: "bedrock_api", upstream: "https://bedrock-runtime." + region + ".amazonaws.com", apiKey: k, model: model, kind: harness.WireBedrock})
 	}
