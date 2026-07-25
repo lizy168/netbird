@@ -5,6 +5,14 @@ on:
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      bedrock_model:
+        description: >-
+          Bedrock inference-profile id to drive the matrix with, exactly as
+          AWS issues it (e.g. global.anthropic.claude-sonnet-4-6-YYYYMMDD-v1:0).
+          Leave empty for the Haiku 4.5 default.
+        required: false
+        default: ""
   # Auto-run on pushes to the cost-calculation validation branch so every
   # change gets a live provider-matrix run without a manual dispatch.
   push:
@@ -67,6 +75,10 @@ jobs:
           CLOUDFLARE_TOKEN: ${{ secrets.E2E_CLOUDFLARE_TOKEN }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.E2E_AWS_BEARER_TOKEN_BEDROCK }}
           AWS_REGION: ${{ secrets.E2E_AWS_REGION }}
+          # Bedrock model override: dispatch input wins, then the repo
+          # variable, else the test's Haiku 4.5 default. Lets a manual run
+          # drive the matrix with e.g. Sonnet 4.6 without a code change.
+          AWS_BEDROCK_MODEL: ${{ inputs.bedrock_model || vars.E2E_AWS_BEDROCK_MODEL }}
           # Vertex (Anthropic-on-Vertex): SA + project required; region defaults
           # to "global", model to a pinned claude snapshot.
           GOOGLE_VERTEX_SA_BASE64: ${{ secrets.E2E_GOOGLE_VERTEX_SA_BASE64 }}
