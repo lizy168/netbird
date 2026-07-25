@@ -11,6 +11,7 @@ import (
 	"compress/gzip"
 	"compress/zlib"
 	"context"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -177,10 +178,15 @@ func logRawResponse(provider, contentType string, status int, body []byte) {
 	if logger == nil {
 		return
 	}
-	shown := body
+	// When the body exceeds the cap, keep the head AND the tail: providers
+	// put the usage block at the END of the response JSON, and the usage
+	// block is the whole point of this audit line — a head-only truncation
+	// would cut off exactly the bytes an operator needs to verify billing.
+	rendered := fmt.Sprintf("%q", body)
 	truncated := false
-	if len(shown) > debugLogRawBytes {
-		shown = shown[:debugLogRawBytes]
+	if len(body) > debugLogRawBytes {
+		half := debugLogRawBytes / 2
+		rendered = fmt.Sprintf("%q …(%d bytes omitted)… %q", body[:half], len(body)-2*half, body[len(body)-half:])
 		truncated = true
 	}
 	logger.WithFields(log.Fields{
@@ -190,7 +196,7 @@ func logRawResponse(provider, contentType string, status int, body []byte) {
 		"content_type": contentType,
 		"body_bytes":   len(body),
 		"truncated":    truncated,
-	}).Warnf("llm raw response body: %q", shown)
+	}).Warnf("llm raw response body: %s", rendered)
 }
 
 // logParsedUsage debug-logs the token counts extracted from the upstream
