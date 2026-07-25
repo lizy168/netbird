@@ -429,6 +429,13 @@ func TestProvidersMatrix(t *testing.T) {
 			// session id and confirm the marker propagated end-to-end.
 			sessionID := "e2e-session-" + pc.name
 
+			// A long-form prompt so every provider produces a realistic
+			// (~1k-word) completion — cost validation then runs on token
+			// counts of the same order as real traffic instead of a
+			// one-word pong. max_tokens in the harness bodies is sized
+			// (2048) to let the full answer through.
+			const matrixPrompt = "explain GitHub workflow in 1000 words"
+
 			// Retry briefly to absorb tunnel/DNS jitter on the first call.
 			var code int
 			var body string
@@ -439,11 +446,11 @@ func TestProvidersMatrix(t *testing.T) {
 				var cerr error
 				switch pc.kind {
 				case harness.WireVertex:
-					c, b, cerr = cl.Vertex(ctx, settings.Endpoint, proxyIP, pc.project, pc.region, pc.model, "Reply with exactly: pong", sessionID)
+					c, b, cerr = cl.Vertex(ctx, settings.Endpoint, proxyIP, pc.project, pc.region, pc.model, matrixPrompt, sessionID)
 				case harness.WireBedrock:
-					c, b, cerr = cl.Bedrock(ctx, settings.Endpoint, proxyIP, pc.model, "Reply with exactly: pong", sessionID)
+					c, b, cerr = cl.Bedrock(ctx, settings.Endpoint, proxyIP, pc.model, matrixPrompt, sessionID)
 				default:
-					c, b, cerr = cl.ChatPrefixed(ctx, settings.Endpoint, proxyIP, pc.pathPrefix, pc.kind, pc.model, "Reply with exactly: pong", sessionID)
+					c, b, cerr = cl.ChatPrefixed(ctx, settings.Endpoint, proxyIP, pc.pathPrefix, pc.kind, pc.model, matrixPrompt, sessionID)
 				}
 				if cerr == nil {
 					code, body = c, b
